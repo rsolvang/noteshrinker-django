@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - .:/var/app
+      - .:/var/app:z
       - media_data:/var/app/noteshrinker/media
       - logs_data:/var/app/logs
     ports:

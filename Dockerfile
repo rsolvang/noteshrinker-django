@@ -25,14 +25,22 @@ RUN pip install numpy
 RUN pip wheel scipy
 RUN pip install scipy
 
+# Create non-root user for running the application
+RUN useradd -m -u 1000 -s /bin/bash appuser && \
+    chown -R appuser:appuser /var/app
+
 # Project files
-COPY . .
+COPY --chown=appuser:appuser . .
 
 # Run the migrations upfront because the sqlite database is stored in a file.
 RUN python manage.py migrate
 
 # Create media directories
-RUN mkdir -p noteshrinker/media/pdf noteshrinker/media/png
+RUN mkdir -p noteshrinker/media/pdf noteshrinker/media/png && \
+    chown -R appuser:appuser noteshrinker/media
+
+# Switch to non-root user
+USER appuser
 
 # Server
 EXPOSE 8000
