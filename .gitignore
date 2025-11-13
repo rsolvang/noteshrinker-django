@@ -14,6 +14,20 @@ db.sqlite3-journal
 /media/
 *.pot
 
+# Keep media directory structure but ignore uploaded files
+!/noteshrinker/media/
+!/noteshrinker/media/pdf/
+!/noteshrinker/media/png/
+!/noteshrinker/media/pictures/
+/noteshrinker/media/pdf/*
+/noteshrinker/media/png/*
+/noteshrinker/media/pictures/*
+!**/.gitkeep
+
+# Logs directory (keep structure, ignore contents)
+/logs/*.log
+/logs/*.log.*
+
 # Environment variables
 .env
 .env.local

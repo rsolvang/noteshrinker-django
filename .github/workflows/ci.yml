@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libblas-dev \
+          liblapack-dev \
+          liblapacke-dev \
+          gfortran \
+          gcc \
+          g++
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r requirements.txt
+
+    - name: Create required directories
+      run: |
+        mkdir -p noteshrinker/media/pdf
+        mkdir -p noteshrinker/media/png
+        mkdir -p noteshrinker/media/pictures
+        mkdir -p logs
+
+    - name: Run Django system checks
+      env:
+        DEBUG: 'True'
+      run: |
+        python manage.py check
+
+    - name: Run migrations
+      env:
+        DEBUG: 'True'
+      run: |
+        python manage.py migrate
+
+    - name: Run tests
+      env:
+        DEBUG: 'True'
+      run: |
+        python manage.py test
+
+    - name: Check for missing migrations
+      env:
+        DEBUG: 'True'
+      run: |
+        python manage.py makemigrations --check --dry-run
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8
+
+    - name: Lint with flake8
+      run: |
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings. Increase line length to 120
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install safety bandit
+
+    - name: Security check with bandit
+      run: |
+        bandit -r noteshrinker noteshrinker_django -ll
+
+    - name: Check dependencies for vulnerabilities
+      run: |
+        pip install -r requirements.txt
+        safety check --json || true

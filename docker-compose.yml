@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/var/app
+      - media_data:/var/app/noteshrinker/media
+      - logs_data:/var/app/logs
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-dev-secret-key-change-in-production}
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      - DJANGO_LOG_LEVEL=INFO
+      - APP_LOG_LEVEL=INFO
+    stdin_open: true
+    tty: true
+
+volumes:
+  media_data:
+  logs_data:
