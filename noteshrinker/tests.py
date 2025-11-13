@@ -240,3 +240,302 @@ class ConfigurationTests(TestCase):
         self.assertIn('handlers', settings.LOGGING)
         self.assertIn('loggers', settings.LOGGING)
         self.assertIn('noteshrinker', settings.LOGGING['loggers'])
+
+
+class BookModelTests(TestCase):
+    """Test Book model operations."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.temp_dir = tempfile.mkdtemp()
+
+    def test_book_creation(self):
+        """Test creating a Book instance."""
+        from .models import Book
+
+        pdf_content = b'%PDF-1.4\nfake pdf content'
+        main_pdf = SimpleUploadedFile(
+            "test_book.pdf",
+            pdf_content,
+            content_type="application/pdf"
+        )
+
+        book = Book.objects.create(
+            title="Test Book",
+            original_filename="test_book.pdf",
+            main_pdf=main_pdf
+        )
+
+        self.assertIsNotNone(book.pk)
+        self.assertEqual(book.title, "Test Book")
+        self.assertEqual(book.status, 'uploaded')
+        self.assertIsNotNone(book.main_pdf)
+
+    def test_book_with_cover(self):
+        """Test creating a Book with cover PDF."""
+        from .models import Book
+
+        main_pdf = SimpleUploadedFile("main.pdf", b'%PDF-1.4\nmain', content_type="application/pdf")
+        cover_pdf = SimpleUploadedFile("cover.pdf", b'%PDF-1.4\ncover', content_type="application/pdf")
+
+        book = Book.objects.create(
+            title="Book with Cover",
+            original_filename="main.pdf",
+            main_pdf=main_pdf,
+            cover_pdf=cover_pdf
+        )
+
+        self.assertIsNotNone(book.cover_pdf)
+        self.assertTrue(book.cover_pdf.name.endswith('.pdf'))
+
+    def test_compression_ratio_property(self):
+        """Test compression ratio calculation."""
+        from .models import Book
+
+        book = Book.objects.create(
+            title="Test",
+            original_filename="test.pdf",
+            main_pdf=SimpleUploadedFile("test.pdf", b'%PDF-1.4\ntest'),
+            original_size_mb=10.0,
+            optimized_size_mb=2.0
+        )
+
+        self.assertEqual(book.compression_ratio, 80.0)  # 80% reduction
+
+    def test_total_pages_property(self):
+        """Test total pages calculation."""
+        from .models import Book
+
+        book = Book.objects.create(
+            title="Test",
+            original_filename="test.pdf",
+            main_pdf=SimpleUploadedFile("test.pdf", b'%PDF-1.4\ntest'),
+            page_count=100,
+            cover_page_count=5
+        )
+
+        self.assertEqual(book.total_pages, 105)
+
+    def test_book_status_choices(self):
+        """Test that all book status values are valid."""
+        from .models import Book
+
+        valid_statuses = ['uploaded', 'preview', 'processing', 'completed', 'failed']
+
+        for status in valid_statuses:
+            book = Book.objects.create(
+                title=f"Test {status}",
+                original_filename="test.pdf",
+                main_pdf=SimpleUploadedFile("test.pdf", b'%PDF-1.4\ntest'),
+                status=status
+            )
+            self.assertEqual(book.status, status)
+
+
+class BookViewTests(TestCase):
+    """Test book-related views."""
+
+    def setUp(self):
+        """Set up test client."""
+        self.client = Client()
+
+    def test_book_upload_get(self):
+        """Test that book upload page loads."""
+        response = self.client.get(reverse('noteshrinker:book_upload'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'books/upload.html')
+
+    def test_book_upload_post_valid(self):
+        """Test uploading a valid book PDF."""
+        from .models import Book
+
+        pdf_content = b'%PDF-1.4\n%fake pdf content for testing'
+        main_pdf = SimpleUploadedFile("test.pdf", pdf_content, content_type="application/pdf")
+
+        with patch('noteshrinker.views.pdf_utils.get_pdf_info') as mock_info:
+            mock_info.return_value = {'page_count': 10, 'size_mb': 5.0}
+
+            response = self.client.post(reverse('noteshrinker:book_upload'), {
+                'title': 'My Test Book',
+                'main_pdf': main_pdf
+            })
+
+        # Should redirect to preview
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Book.objects.filter(title='My Test Book').exists())
+
+    def test_book_upload_missing_main_pdf(self):
+        """Test that upload fails without main PDF."""
+        response = self.client.post(reverse('noteshrinker:book_upload'), {
+            'title': 'Test'
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b'Main PDF is required', response.content)
+
+    def test_book_upload_invalid_file_type(self):
+        """Test that non-PDF files are rejected."""
+        text_file = SimpleUploadedFile("test.txt", b'not a pdf', content_type="text/plain")
+
+        response = self.client.post(reverse('noteshrinker:book_upload'), {
+            'title': 'Test',
+            'main_pdf': text_file
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b'must be a PDF', response.content)
+
+    def test_book_list_view(self):
+        """Test book list view."""
+        response = self.client.get(reverse('noteshrinker:book_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'books/list.html')
+
+    @patch('noteshrinker.views.pdf_utils.get_pdf_info')
+    def test_book_preview_view(self, mock_info):
+        """Test book preview view."""
+        from .models import Book
+
+        # Create a book
+        book = Book.objects.create(
+            title="Test Book",
+            original_filename="test.pdf",
+            main_pdf=SimpleUploadedFile("test.pdf", b'%PDF-1.4\ntest'),
+            page_count=10,
+            status='preview'
+        )
+
+        response = self.client.get(reverse('noteshrinker:book_preview', kwargs={'book_id': book.id}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'books/preview.html')
+        self.assertIn('book', response.context)
+        self.assertIn('settings', response.context)
+
+    def test_book_status_view(self):
+        """Test book status view."""
+        from .models import Book
+
+        book = Book.objects.create(
+            title="Processing Book",
+            original_filename="test.pdf",
+            main_pdf=SimpleUploadedFile("test.pdf", b'%PDF-1.4\ntest'),
+            status='processing'
+        )
+
+        response = self.client.get(reverse('noteshrinker:book_status', kwargs={'book_id': book.id}))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'books/status.html')
+
+    def test_book_status_json(self):
+        """Test book status JSON endpoint."""
+        from .models import Book
+
+        book = Book.objects.create(
+            title="Test Book",
+            original_filename="test.pdf",
+            main_pdf=SimpleUploadedFile("test.pdf", b'%PDF-1.4\ntest'),
+            status='completed',
+            original_size_mb=10.0,
+            optimized_size_mb=2.0,
+            page_count=50
+        )
+
+        response = self.client.get(reverse('noteshrinker:book_status_json', kwargs={'book_id': book.id}))
+        self.assertEqual(response.status_code, 200)
+
+        data = response.json()
+        self.assertEqual(data['status'], 'completed')
+        self.assertEqual(data['title'], 'Test Book')
+        self.assertEqual(data['compression_ratio'], 80.0)
+        self.assertIn('download_url', data)
+
+    def test_book_download_not_completed(self):
+        """Test that download fails for non-completed books."""
+        from .models import Book
+
+        book = Book.objects.create(
+            title="Processing Book",
+            original_filename="test.pdf",
+            main_pdf=SimpleUploadedFile("test.pdf", b'%PDF-1.4\ntest'),
+            status='processing'
+        )
+
+        response = self.client.get(reverse('noteshrinker:book_download', kwargs={'book_id': book.id}))
+        self.assertEqual(response.status_code, 400)
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+class PDFUtilsTests(TestCase):
+    """Test PDF utility functions."""
+
+    def test_get_pdf_info_invalid_pdf(self):
+        """Test that get_pdf_info handles invalid PDFs."""
+        from .pdf_utils import get_pdf_info
+
+        temp_file = Path(tempfile.mktemp(suffix='.pdf'))
+        temp_file.write_bytes(b'not a valid pdf')
+
+        with self.assertRaises(Exception):
+            get_pdf_info(temp_file)
+
+        temp_file.unlink()
+
+    @patch('noteshrinker.pdf_utils.convert_from_path')
+    def test_pdf_to_images(self, mock_convert):
+        """Test PDF to images conversion."""
+        from .pdf_utils import pdf_to_images
+        from PIL import Image
+
+        # Mock the conversion
+        mock_image = MagicMock(spec=Image.Image)
+        mock_convert.return_value = [mock_image, mock_image]
+
+        pdf_path = Path(tempfile.mktemp(suffix='.pdf'))
+        pdf_path.write_bytes(b'%PDF-1.4\ntest')
+
+        output_dir = Path(tempfile.mkdtemp())
+
+        result = pdf_to_images(pdf_path, output_dir, dpi=150)
+
+        self.assertEqual(len(result), 2)
+        mock_convert.assert_called_once()
+
+        # Cleanup
+        pdf_path.unlink()
+
+    @patch('noteshrinker.pdf_utils.notescan_main')
+    def test_optimize_images(self, mock_notescan):
+        """Test image optimization."""
+        from .pdf_utils import optimize_images
+
+        # Create mock images
+        image_paths = []
+        for i in range(2):
+            img_path = Path(tempfile.mktemp(suffix='.png'))
+            img_path.write_bytes(b'fake image data')
+            image_paths.append(img_path)
+
+        output_dir = Path(tempfile.mkdtemp())
+
+        # Mock notescan_main to return optimized file names
+        mock_notescan.return_value = (['optimized_page1.png', 'optimized_page2.png'], None)
+
+        # Create the expected output files
+        for fname in ['optimized_page1.png', 'optimized_page2.png']:
+            (output_dir / fname).write_bytes(b'optimized')
+
+        settings = {
+            'num_colors': 8,
+            'sample_fraction': 0.05,
+            'sat_threshold': 0.20,
+            'value_threshold': 0.25,
+            'white_bg': True,
+            'global_palette': True
+        }
+
+        result = optimize_images(image_paths, settings, output_dir)
+
+        self.assertEqual(len(result), 2)
+        mock_notescan.assert_called_once()
+
+        # Cleanup
+        for path in image_paths:
+            path.unlink(missing_ok=True)
