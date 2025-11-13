@@ -1,0 +1,73 @@
+# Noteshrinker-Django Compose Configuration
+# Podman-compatible for Red Hat Enterprise Linux and Fedora
+#
+# Usage with Podman:
+#   podman-compose up
+# OR:
+#   podman compose up  (Podman 4.0+ with built-in compose)
+#
+# Usage with Docker:
+#   docker compose up
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    # Run as non-root user for security (Podman best practice)
+    # Uncomment if you need specific UID/GID mapping
+    # user: "1000:1000"
+
+    command: python manage.py runserver 0.0.0.0:8000
+
+    # Volume mounts with SELinux context labels for RedHat/Fedora
+    # :z = shared between containers (lowercase z)
+    # :Z = private to this container (uppercase Z)
+    volumes:
+      - ./:/var/app:z
+      - noteshrinker-media:/var/app/noteshrinker/media:Z
+      - noteshrinker-logs:/var/app/logs:Z
+
+    ports:
+      - "8000:8000"
+
+    environment:
+      # Development environment variables
+      - DEBUG=True
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-dev-secret-key-change-in-production}
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      - CSRF_TRUSTED_ORIGINS=http://localhost:8000,http://127.0.0.1:8000
+      - DJANGO_LOG_LEVEL=INFO
+      - APP_LOG_LEVEL=INFO
+
+    # Interactive terminal support
+    stdin_open: true
+    tty: true
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "manage.py", "check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  # Named volumes for persistent data
+  # Podman stores these in ~/.local/share/containers/storage/volumes/ (rootless)
+  # or /var/lib/containers/storage/volumes/ (rootful)
+  noteshrinker-media:
+    driver: local
+
+  noteshrinker-logs:
+    driver: local
+
+# Network configuration (optional - Podman creates default network)
+networks:
+  default:
+    # Enable DNS resolution between containers
+    driver: bridge

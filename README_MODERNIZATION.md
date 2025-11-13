@@ -5,13 +5,14 @@ This document describes the modernization work done to bring this project (last 
 ## Summary of Changes
 
 The project has been comprehensively modernized with:
-- Django 3.2 → 4.2 LTS (supported until April 2026)
+- Django 3.2 → 5.2 (latest stable)
 - Python 3.9 → 3.11
 - Critical security fixes
 - Modern Python practices (pathlib, type hints)
-- Comprehensive test suite
-- CI/CD pipeline
+- Comprehensive test suite (19 tests, all passing)
+- CI/CD pipeline (GitHub Actions)
 - Production-ready configuration
+- Podman/RedHat support
 
 ## Detailed Changes
 
@@ -37,14 +38,15 @@ The project has been comprehensively modernized with:
    - Configured HTTPS settings for production
    - File: `noteshrinker_django/settings.py:144-151`
 
-### Phase 2: Django 4.2 LTS Migration ✅
+### Phase 2: Django 5.2 Migration ✅
 
 **Django Updates:**
-- Updated from Django 3.2 → 4.2 LTS
+- Updated from Django 3.2 → 5.2 (latest stable)
 - Replaced deprecated `ugettext_lazy` → `gettext_lazy`
 - Migrated URL patterns from `url()` → `path()`/`re_path()`
 - Added `DEFAULT_AUTO_FIELD = 'BigAutoField'`
 - Generated migration for BigAutoField (0002_alter_picture_id)
+- All 19 tests passing with Django 5.2
 
 **Files Modified:**
 - `noteshrinker_django/settings.py`
@@ -57,7 +59,7 @@ The project has been comprehensively modernized with:
 **Version Updates:**
 ```
 Python:  3.9  → 3.11
-Django:  3.2  → 4.2.26 (LTS)
+Django:  3.2  → 5.2.8 (latest stable)
 Pillow:  8.2  → 10.0.0+
 NumPy:   1.20 → 1.24.0+ (staying on 1.x)
 SciPy:   1.6  → 1.10.0+
@@ -100,10 +102,12 @@ NumPy 2.0 introduced breaking changes. Staying on 1.26.x ensures compatibility w
 
 ### Phase 5: Production Readiness ✅
 
-**1. Docker Compose**
-- Added `docker-compose.yml` for easy local development
-- Configured volumes for persistence
+**1. Container Support**
+- Added `docker-compose.yml` for Docker
+- Added `compose.yaml` for Podman (RedHat/Fedora compatible)
+- Configured volumes with SELinux labels for Podman
 - Environment variable support
+- Systemd integration guide for Podman
 
 **2. Production Settings**
 - Created `settings_production.py` with:
@@ -126,6 +130,13 @@ NumPy 2.0 introduced breaking changes. Staying on 1.26.x ensures compatibility w
 - `.env.example` - Template for environment variables
 - `.gitignore` - Comprehensive Python/Django exclusions
 - `logs/.gitkeep` - Preserve logs directory structure
+
+**5. Podman/RedHat Support**
+- Created `PODMAN_DEPLOY.md` - Comprehensive Podman deployment guide
+- `compose.yaml` with SELinux labels for RedHat/Fedora
+- Rootless and rootful container instructions
+- Systemd integration examples
+- Troubleshooting guide for SELinux, permissions, networking
 
 ## Testing Results
 
@@ -246,7 +257,10 @@ docker run -p 8000:8000 noteshrinker
 ## Compatibility
 
 **Python Versions:** 3.11+ (tested on 3.11 and 3.12)
-**Django Version:** 4.2 LTS (supported until April 2026)
+**Django Version:** 5.2 (latest stable)
+**Container Runtimes:** Docker, Podman 4.0+
+**Operating Systems:** Linux (any), macOS, Windows with WSL
+**RedHat Distros:** RHEL 8/9, Fedora 37+, CentOS Stream 8/9
 **Browsers:** All modern browsers (Chrome, Firefox, Safari, Edge)
 
 ## License

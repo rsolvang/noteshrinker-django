@@ -35,19 +35,77 @@ and use python instead of python3, and pip instead of pip3
 6. Finally,  from the root directory of the project ```python3 manage.py migrate``` and  ```python3 manage.py runserver ```
 7. Navigate to [http://localhost:8000](http://localhost:8000) in your browser!
 
-### Using Docker (not for production) ###
+### Using Docker ###
 Make sure you have Docker installed.
 
-1. Clone this repository:  
+1. Clone this repository:
    ```git clone https://github.com/delneg/noteshrinker-django/ ```
-2. cd into the newly created directory:  
+2. cd into the newly created directory:
    ```cd noteshrinker-django```
-3. Build the Docker container:  
-   ```docker build -t noteshrinker .```
-4. Run the container:  
-   ```docker run -p 8000:8000 --rm noteshrinker```  
-   The container will listen on port 8000 (bound to internal port 8000) and will be removed after use (--rm). The server should be up-and-running immediately but it won't tell you. Just go to the next step.
-5. Navigate to [http://localhost:8000](http://localhost:8000) in your browser!
+
+**Option A: Docker Compose (Recommended)**
+```bash
+docker compose up
+```
+
+**Option B: Manual Build and Run**
+```bash
+# Build the Docker container
+docker build -t noteshrinker .
+
+# Run the container
+docker run -p 8000:8000 --rm noteshrinker
+```
+
+3. Navigate to [http://localhost:8000](http://localhost:8000) in your browser!
+
+### Using Podman (RedHat/Fedora/CentOS) ###
+For Red Hat Enterprise Linux, Fedora, CentOS Stream, and other RedHat-based distributions, we recommend using Podman.
+
+**Quick Start:**
+```bash
+# Clone repository
+git clone https://github.com/delneg/noteshrinker-django/
+cd noteshrinker-django
+
+# Start with Podman Compose
+podman compose up
+
+# Or with podman-compose
+podman-compose up
+```
+
+**For comprehensive Podman deployment guide including:**
+- Rootless vs Rootful containers
+- SELinux configuration
+- Systemd integration
+- Production deployment
+- Troubleshooting
+
+See **[PODMAN_DEPLOY.md](PODMAN_DEPLOY.md)** for detailed instructions.
+
+## Latest Updates (November 2025)
+
+This project has been **fully modernized** from its 2021 codebase:
+
+- ✅ **Django 5.2** (latest stable)
+- ✅ **Python 3.11+**
+- ✅ **Security fixes** (path traversal, secret management)
+- ✅ **Comprehensive test suite** (19 tests)
+- ✅ **Type hints** and modern Python practices
+- ✅ **CI/CD pipeline** (GitHub Actions)
+- ✅ **Podman support** for RedHat environments
+- ✅ **Production-ready** configuration
+
+**Documentation:**
+- [Complete Modernization Guide](README_MODERNIZATION.md) - All changes and migration guides
+- [Podman Deployment Guide](PODMAN_DEPLOY.md) - RedHat/Fedora deployment with Podman
+
+## Requirements
+
+- **Python**: 3.11 or higher
+- **Django**: 5.2
+- **Container Runtime**: Docker or Podman
 
 License
 ------
