@@ -16,8 +16,8 @@ services:
       dockerfile: Dockerfile
 
     # Run as non-root user for security (Podman best practice)
-    # Uncomment if you need specific UID/GID mapping
-    # user: "1000:1000"
+    # This matches the appuser created in Dockerfile (UID/GID 1000)
+    user: "1000:1000"
 
     command: python manage.py runserver 0.0.0.0:8000
 

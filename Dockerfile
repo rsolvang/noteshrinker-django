@@ -1,8 +1,13 @@
 FROM python:3.13-slim
 
+# Create non-root user for running the application
+# UID 1000 is commonly used for the first user on Linux systems
+RUN groupadd -r appuser -g 1000 && \
+    useradd -r -u 1000 -g appuser -m -d /home/appuser -s /bin/bash appuser
+
 WORKDIR /var/app
 
-# Dependencies
+# Dependencies (install as root)
 RUN apt-get update && \
     apt-get install -y \
         libblas-dev \
@@ -28,11 +33,15 @@ RUN pip install scipy
 # Project files
 COPY . .
 
+# Create media directories and set ownership
+RUN mkdir -p noteshrinker/media/pdf noteshrinker/media/png noteshrinker/media/books noteshrinker/media/pictures logs && \
+    chown -R appuser:appuser /var/app
+
+# Switch to non-root user
+USER appuser
+
 # Run the migrations upfront because the sqlite database is stored in a file.
 RUN python manage.py migrate
-
-# Create media directories
-RUN mkdir -p noteshrinker/media/pdf noteshrinker/media/png
 
 # Server
 EXPOSE 8000
