@@ -13,16 +13,17 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
-from django.conf.urls import include,url
+from django.urls import include, path, re_path
 from django.contrib import admin
 from django.conf.urls.i18n import i18n_patterns
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from noteshrinker import views as noteshrinker_views
-urlpatterns = [
-    url(r'^admin/', admin.site.urls),
-    url(r'^', include('noteshrinker.urls'))
 
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('noteshrinker.urls')),
 ]
+
 urlpatterns += i18n_patterns(
-    url(_(r'^$'), noteshrinker_views.PictureCreateView.as_view(), name='index'),
+    re_path(_(r'^$'), noteshrinker_views.PictureCreateView.as_view(), name='index'),
 )

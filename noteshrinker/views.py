@@ -23,15 +23,25 @@ def random_string(N):
 
 @require_GET
 def download_pdf(request):
-    filename = request.GET['filename']
+    filename = request.GET.get('filename', '')
+
+    # Security: Prevent path traversal attacks
+    if not filename or '..' in filename or '/' in filename or '\\' in filename:
+        return HttpResponseBadRequest("Invalid filename")
+
     file_path = os.path.join(settings.PDF_ROOT, filename)
+
+    # Security: Ensure the resolved path is still within PDF_ROOT
+    if not os.path.abspath(file_path).startswith(os.path.abspath(settings.PDF_ROOT)):
+        return HttpResponseBadRequest("Invalid file path")
+
     if os.path.exists(file_path):
         with open(file_path, 'rb') as fh:
             response = HttpResponse(fh.read(), content_type="application/pdf")
             response['Content-Disposition'] = 'attachment; filename=' + os.path.basename(file_path) + ".pdf"
             return response
     else:
-        return HttpResponseBadRequest()
+        return HttpResponseBadRequest("File not found")
 
 
 def download_zip(request):
