@@ -10,7 +10,8 @@ RUN apt-get update && \
         liblapacke-dev \
         gfortran \
         gcc \
-        g++ && \
+        g++ \
+        poppler-utils && \
     pip install --upgrade pip setuptools wheel && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*

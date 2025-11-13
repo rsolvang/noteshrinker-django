@@ -5,6 +5,10 @@ Django>=5.2,<5.3
 # Image processing
 Pillow>=10.0.0
 
+# PDF processing for book optimization
+pypdf>=4.0.0  # PDF manipulation (formerly PyPDF2)
+pdf2image>=1.17.0  # Convert PDF pages to images (requires poppler)
+
 # Scientific computing - using NumPy 1.x for stability
 # Note: NumPy 2.0+ has breaking changes, test before upgrading
 numpy>=1.24.0,<2.0
