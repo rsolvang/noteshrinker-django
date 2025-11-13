@@ -5,7 +5,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/var/app:z
       - media_data:/var/app/noteshrinker/media
