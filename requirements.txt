@@ -1,5 +1,5 @@
 # Django 5.2 - Latest stable version
-# Note: Django 5.0+ requires Python 3.10+
+# Note: Django 5.0+ requires Python 3.10+, tested with Python 3.13
 Django>=5.2,<5.3
 
 # Image processing

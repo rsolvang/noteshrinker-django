@@ -89,7 +89,7 @@ See **[PODMAN_DEPLOY.md](PODMAN_DEPLOY.md)** for detailed instructions.
 This project has been **fully modernized** from its 2021 codebase:
 
 - ✅ **Django 5.2** (latest stable)
-- ✅ **Python 3.11+**
+- ✅ **Python 3.13** (latest stable)
 - ✅ **Security fixes** (path traversal, secret management)
 - ✅ **Comprehensive test suite** (19 tests)
 - ✅ **Type hints** and modern Python practices
@@ -103,7 +103,7 @@ This project has been **fully modernized** from its 2021 codebase:
 
 ## Requirements
 
-- **Python**: 3.11 or higher
+- **Python**: 3.10 or higher (tested with 3.11, 3.12, 3.13)
 - **Django**: 5.2
 - **Container Runtime**: Docker or Podman
 

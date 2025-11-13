@@ -6,7 +6,7 @@ This document describes the modernization work done to bring this project (last 
 
 The project has been comprehensively modernized with:
 - Django 3.2 → 5.2 (latest stable)
-- Python 3.9 → 3.11
+- Python 3.9 → 3.13 (latest stable)
 - Critical security fixes
 - Modern Python practices (pathlib, type hints)
 - Comprehensive test suite (19 tests, all passing)
@@ -58,7 +58,7 @@ The project has been comprehensively modernized with:
 
 **Version Updates:**
 ```
-Python:  3.9  → 3.11
+Python:  3.9  → 3.13 (latest stable)
 Django:  3.2  → 5.2.8 (latest stable)
 Pillow:  8.2  → 10.0.0+
 NumPy:   1.20 → 1.24.0+ (staying on 1.x)
@@ -256,7 +256,7 @@ docker run -p 8000:8000 noteshrinker
 
 ## Compatibility
 
-**Python Versions:** 3.11+ (tested on 3.11 and 3.12)
+**Python Versions:** 3.10+ (tested on 3.11, 3.12, and 3.13)
 **Django Version:** 5.2 (latest stable)
 **Container Runtimes:** Docker, Podman 4.0+
 **Operating Systems:** Linux (any), macOS, Windows with WSL
