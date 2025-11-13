@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.13-slim
 
 WORKDIR /var/app
 
@@ -8,8 +8,13 @@ RUN apt-get update && \
         libblas-dev \
         liblapack-dev \
         liblapacke-dev \
-        gfortran && \
-    pip install --upgrade pip setuptools wheel
+        gfortran \
+        gcc \
+        g++ \
+        poppler-utils && \
+    pip install --upgrade pip setuptools wheel && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY requirements_docker.txt ./
 RUN pip install --no-cache-dir -r requirements_docker.txt
@@ -25,6 +30,9 @@ COPY . .
 
 # Run the migrations upfront because the sqlite database is stored in a file.
 RUN python manage.py migrate
+
+# Create media directories
+RUN mkdir -p noteshrinker/media/pdf noteshrinker/media/png
 
 # Server
 EXPOSE 8000

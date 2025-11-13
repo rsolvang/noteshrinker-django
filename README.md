@@ -18,6 +18,51 @@ yet it can be made better by tweaking settings.
 What does it look like?
 ------
 ![ui](https://github.com/delneg/noteshrinker-django/blob/master/example/ui.jpg?raw=true "UI")
+
+## New Feature: Book PDF Optimization
+
+Optimize scanned PDF books for memory-constrained e-readers with 60-90% file size reduction!
+
+### Key Features
+
+- **Upload & Optimize**: Upload scanned PDF books for compression
+- **Optional Cover Support**: Separate cover PDF that's merged at the start
+- **Interactive Preview**: View sample pages with adjustable settings before processing
+- **Custom Settings**: Adjust DPI, colors, thresholds for optimal results
+- **Real-time Progress**: Track processing status with live updates
+- **Upload History**: Manage all your optimized books in one place
+
+### How to Use
+
+1. **Navigate** to `/books/upload/` (or click "Book Optimization" from homepage)
+2. **Upload** your main book PDF (required) and optional cover PDF
+3. **Preview** a sample page and adjust optimization settings:
+   - DPI (100-300): Higher = better quality, larger file
+   - Number of colors (2-16): Fewer = smaller file
+   - Saturation/value thresholds: Color detection sensitivity
+   - White background: Convert background to white
+   - Global palette: Use same colors for all pages
+4. **Process** the entire book with your chosen settings
+5. **Download** your optimized PDF when complete
+
+### API Endpoints
+
+- `GET /books/` - List all uploaded books
+- `GET/POST /books/upload/` - Upload new book
+- `GET /books/<id>/preview/` - Preview and settings page
+- `POST /books/<id>/generate-preview/` - AJAX: Generate preview
+- `POST /books/<id>/process/` - Start book processing
+- `GET /books/<id>/status/` - Processing status page
+- `GET /books/<id>/status/json/` - AJAX: Status polling
+- `GET /books/<id>/download/` - Download optimized PDF
+
+### Benefits
+
+- **Massive Size Reduction**: Typically 60-90% smaller file size
+- **Maintained Quality**: Excellent readability for text and graphics
+- **E-reader Friendly**: Perfect for Kindle, Kobo, and other devices
+- **Smart Optimization**: Advanced color palette reduction algorithms
+
 How do I launch it?
 ------
 ### Using Python ###
@@ -35,19 +80,78 @@ and use python instead of python3, and pip instead of pip3
 6. Finally,  from the root directory of the project ```python3 manage.py migrate``` and  ```python3 manage.py runserver ```
 7. Navigate to [http://localhost:8000](http://localhost:8000) in your browser!
 
-### Using Docker (not for production) ###
+### Using Docker ###
 Make sure you have Docker installed.
 
-1. Clone this repository:  
+1. Clone this repository:
    ```git clone https://github.com/delneg/noteshrinker-django/ ```
-2. cd into the newly created directory:  
+2. cd into the newly created directory:
    ```cd noteshrinker-django```
-3. Build the Docker container:  
-   ```docker build -t noteshrinker .```
-4. Run the container:  
-   ```docker run -p 8000:8000 --rm noteshrinker```  
-   The container will listen on port 8000 (bound to internal port 8000) and will be removed after use (--rm). The server should be up-and-running immediately but it won't tell you. Just go to the next step.
-5. Navigate to [http://localhost:8000](http://localhost:8000) in your browser!
+
+**Option A: Docker Compose (Recommended)**
+```bash
+docker compose up
+```
+
+**Option B: Manual Build and Run**
+```bash
+# Build the Docker container
+docker build -t noteshrinker .
+
+# Run the container
+docker run -p 8000:8000 --rm noteshrinker
+```
+
+3. Navigate to [http://localhost:8000](http://localhost:8000) in your browser!
+
+### Using Podman (RedHat/Fedora/CentOS) ###
+For Red Hat Enterprise Linux, Fedora, CentOS Stream, and other RedHat-based distributions, we recommend using Podman.
+
+**Quick Start:**
+```bash
+# Clone repository
+git clone https://github.com/delneg/noteshrinker-django/
+cd noteshrinker-django
+
+# Start with Podman Compose
+podman compose up
+
+# Or with podman-compose
+podman-compose up
+```
+
+**For comprehensive Podman deployment guide including:**
+- Rootless vs Rootful containers
+- SELinux configuration
+- Systemd integration
+- Production deployment
+- Troubleshooting
+
+See **[PODMAN_DEPLOY.md](PODMAN_DEPLOY.md)** for detailed instructions.
+
+## Latest Updates (November 2025)
+
+This project has been **fully modernized** from its 2021 codebase:
+
+- ✅ **Django 5.2** (latest stable)
+- ✅ **Python 3.13** (latest stable)
+- ✅ **Book PDF Optimization** - New feature for compressing scanned books!
+- ✅ **Security fixes** (path traversal, secret management)
+- ✅ **Comprehensive test suite** (36 tests)
+- ✅ **Type hints** and modern Python practices
+- ✅ **CI/CD pipeline** (GitHub Actions)
+- ✅ **Podman support** for RedHat environments
+- ✅ **Production-ready** configuration
+
+**Documentation:**
+- [Complete Modernization Guide](README_MODERNIZATION.md) - All changes and migration guides
+- [Podman Deployment Guide](PODMAN_DEPLOY.md) - RedHat/Fedora deployment with Podman
+
+## Requirements
+
+- **Python**: 3.10 or higher (tested with 3.11, 3.12, 3.13)
+- **Django**: 5.2
+- **Container Runtime**: Docker or Podman
 
 License
 ------

@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Preview and Settings</h1>
+        <p class="lead">{{ book.title }}</p>
+    </div>
+
+    <div class="row">
+        <!-- Settings Panel -->
+        <div class="col-md-4">
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Optimization Settings</h3>
+                </div>
+                <div class="panel-body">
+                    <form id="settingsForm">
+                        {% csrf_token %}
+
+                        <div class="form-group">
+                            <label for="preview_page">Preview Page Number</label>
+                            <input type="number" class="form-control" id="preview_page" name="preview_page"
+                                   value="{{ settings.preview_page }}" min="1" max="{{ max_page }}" required>
+                            <p class="help-block">Page 1-{{ max_page }}</p>
+                        </div>
+
+                        <hr>
+
+                        <div class="form-group">
+                            <label for="dpi">DPI (Resolution)</label>
+                            <input type="range" class="form-control" id="dpi" name="dpi"
+                                   value="{{ settings.dpi }}" min="100" max="300" step="50">
+                            <output for="dpi" id="dpi_value">{{ settings.dpi }}</output>
+                            <p class="help-block">Higher = better quality, larger file</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="num_colors">Number of Colors</label>
+                            <input type="range" class="form-control" id="num_colors" name="num_colors"
+                                   value="{{ settings.num_colors }}" min="2" max="16" step="1">
+                            <output for="num_colors" id="num_colors_value">{{ settings.num_colors }}</output>
+                            <p class="help-block">Fewer colors = smaller file</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="sample_fraction">Sample Fraction (%)</label>
+                            <input type="range" class="form-control" id="sample_fraction" name="sample_fraction"
+                                   value="{{ settings.sample_fraction }}" min="1" max="20" step="1">
+                            <output for="sample_fraction" id="sample_fraction_value">{{ settings.sample_fraction }}%</output>
+                            <p class="help-block">Percentage of pixels to sample</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="sat_threshold">Saturation Threshold (%)</label>
+                            <input type="range" class="form-control" id="sat_threshold" name="sat_threshold"
+                                   value="{{ settings.sat_threshold }}" min="5" max="50" step="5">
+                            <output for="sat_threshold" id="sat_threshold_value">{{ settings.sat_threshold }}%</output>
+                            <p class="help-block">Color detection sensitivity</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="value_threshold">Value Threshold (%)</label>
+                            <input type="range" class="form-control" id="value_threshold" name="value_threshold"
+                                   value="{{ settings.value_threshold }}" min="5" max="50" step="5">
+                            <output for="value_threshold" id="value_threshold_value">{{ settings.value_threshold }}%</output>
+                            <p class="help-block">Brightness detection sensitivity</p>
+                        </div>
+
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox" id="white_bg" name="white_bg"
+                                       {% if settings.white_bg %}checked{% endif %}>
+                                White Background
+                            </label>
+                            <p class="help-block">Convert background to white</p>
+                        </div>
+
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox" id="global_palette" name="global_palette"
+                                       {% if settings.global_palette %}checked{% endif %}>
+                                Global Palette
+                            </label>
+                            <p class="help-block">Use same colors for all pages</p>
+                        </div>
+
+                        <button type="button" class="btn btn-info btn-block" id="updatePreviewBtn">
+                            <span class="glyphicon glyphicon-refresh"></span> Update Preview
+                        </button>
+
+                        <button type="button" class="btn btn-default btn-block" id="resetBtn">
+                            Reset to Defaults
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <h4>Book Information</h4>
+                </div>
+                <div class="panel-body">
+                    <p><strong>Pages:</strong> {{ book.total_pages }}</p>
+                    <p><strong>Original Size:</strong> {{ book.original_size_mb }} MB</p>
+                    {% if book.cover_pdf %}
+                    <p><strong>Cover Pages:</strong> {{ book.cover_page_count }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Panel -->
+        <div class="col-md-8">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Page Preview</h3>
+                </div>
+                <div class="panel-body text-center">
+                    <div id="previewLoading" style="display: none;">
+                        <div style="padding: 100px 0;">
+                            <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate"
+                                  style="font-size: 48px;"></span>
+                            <p style="margin-top: 20px; font-size: 18px;">Generating preview...</p>
+                        </div>
+                    </div>
+
+                    <div id="previewContainer">
+                        <p class="text-muted">Click "Update Preview" to generate preview</p>
+                    </div>
+
+                    <div id="previewStats" style="margin-top: 20px; display: none;">
+                        <div class="alert alert-success">
+                            <strong>Compression:</strong> <span id="compressionRatio"></span>%
+                            <br>
+                            <strong>Original:</strong> <span id="originalSize"></span> KB
+                            →
+                            <strong>Optimized:</strong> <span id="optimizedSize"></span> KB
+                        </div>
+                    </div>
+
+                    <div id="previewError" class="alert alert-danger" style="display: none;"></div>
+                </div>
+            </div>
+
+            <form method="post" action="{% url 'noteshrinker:book_process' book.id %}" id="processForm">
+                {% csrf_token %}
+                <input type="hidden" name="dpi" id="process_dpi" value="{{ settings.dpi }}">
+                <input type="hidden" name="num_colors" id="process_num_colors" value="{{ settings.num_colors }}">
+                <input type="hidden" name="sample_fraction" id="process_sample_fraction" value="{{ settings.sample_fraction }}">
+                <input type="hidden" name="sat_threshold" id="process_sat_threshold" value="{{ settings.sat_threshold }}">
+                <input type="hidden" name="value_threshold" id="process_value_threshold" value="{{ settings.value_threshold }}">
+                <input type="hidden" name="white_bg" id="process_white_bg" value="{{ settings.white_bg|lower }}">
+                <input type="hidden" name="global_palette" id="process_global_palette" value="{{ settings.global_palette|lower }}">
+
+                <button type="submit" class="btn btn-success btn-lg btn-block" id="processBtn">
+                    <span class="glyphicon glyphicon-cog"></span> Process Entire Book with These Settings
+                </button>
+            </form>
+
+            <div style="margin-top: 15px;">
+                <a href="{% url 'noteshrinker:book_upload' %}" class="btn btn-default">
+                    <span class="glyphicon glyphicon-arrow-left"></span> Back to Upload
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block js %}
+<script src="{% static 'noteshrinker/js/jquery.min.js' %}"></script>
+<script src="{% static 'noteshrinker/js/bootstrap.min.js' %}"></script>
+<script>
+$(document).ready(function() {
+    var bookId = {{ book.id }};
+    var csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
+
+    // Update range slider values
+    $('input[type="range"]').on('input', function() {
+        var id = $(this).attr('id');
+        var value = $(this).val();
+        var suffix = id === 'sample_fraction' || id === 'sat_threshold' || id === 'value_threshold' ? '%' : '';
+        $('#' + id + '_value').text(value + suffix);
+
+        // Update hidden form fields
+        $('#process_' + id).val(value);
+    });
+
+    // Update checkboxes
+    $('input[type="checkbox"]').change(function() {
+        var id = $(this).attr('id');
+        var value = $(this).is(':checked') ? 'true' : 'false';
+        $('#process_' + id).val(value);
+    });
+
+    // Reset button
+    $('#resetBtn').click(function() {
+        $('#dpi').val(150).trigger('input');
+        $('#num_colors').val(8).trigger('input');
+        $('#sample_fraction').val(5).trigger('input');
+        $('#sat_threshold').val(20).trigger('input');
+        $('#value_threshold').val(25).trigger('input');
+        $('#white_bg').prop('checked', true).trigger('change');
+        $('#global_palette').prop('checked', true).trigger('change');
+        $('#preview_page').val(1);
+    });
+
+    // Update preview
+    $('#updatePreviewBtn').click(function() {
+        generatePreview();
+    });
+
+    // Also update on Enter in page number field
+    $('#preview_page').keypress(function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            generatePreview();
+        }
+    });
+
+    function generatePreview() {
+        $('#previewLoading').show();
+        $('#previewContainer').html('');
+        $('#previewStats').hide();
+        $('#previewError').hide();
+        $('#updatePreviewBtn').prop('disabled', true);
+
+        var formData = {
+            preview_page: $('#preview_page').val(),
+            dpi: $('#dpi').val(),
+            num_colors: $('#num_colors').val(),
+            sample_fraction: $('#sample_fraction').val(),
+            sat_threshold: $('#sat_threshold').val(),
+            value_threshold: $('#value_threshold').val(),
+            white_bg: $('#white_bg').is(':checked') ? 'true' : 'false',
+            global_palette: $('#global_palette').is(':checked') ? 'true' : 'false',
+            csrfmiddlewaretoken: csrfToken
+        };
+
+        $.ajax({
+            url: '/books/' + bookId + '/generate-preview/',
+            method: 'POST',
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    var img = $('<img>')
+                        .attr('src', response.image)
+                        .css({
+                            'max-width': '100%',
+                            'border': '1px solid #ddd',
+                            'box-shadow': '0 2px 4px rgba(0,0,0,0.1)'
+                        });
+
+                    $('#previewContainer').html(img);
+                    $('#compressionRatio').text(response.compression_ratio);
+                    $('#originalSize').text(response.original_size_kb);
+                    $('#optimizedSize').text(response.optimized_size_kb);
+                    $('#previewStats').show();
+                } else {
+                    $('#previewError').text('Error: ' + (response.error || 'Unknown error')).show();
+                }
+            },
+            error: function(xhr) {
+                var errorMsg = 'Failed to generate preview';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMsg = xhr.responseJSON.error;
+                }
+                $('#previewError').text(errorMsg).show();
+            },
+            complete: function() {
+                $('#previewLoading').hide();
+                $('#updatePreviewBtn').prop('disabled', false);
+            }
+        });
+    }
+
+    // Generate initial preview
+    generatePreview();
+
+    // Process form submission
+    $('#processForm').submit(function() {
+        $('#processBtn').prop('disabled', true).html(
+            '<span class="glyphicon glyphicon-refresh glyphicon-refresh-animate"></span> Starting processing...'
+        );
+    });
+});
+</script>
+<style>
+.glyphicon-refresh-animate {
+    animation: spin .7s infinite linear;
+}
+@keyframes spin {
+    from { transform: scale(1) rotate(0deg); }
+    to { transform: scale(1) rotate(360deg); }
+}
+input[type="range"] {
+    width: 100%;
+}
+output {
+    display: inline-block;
+    padding: 2px 6px;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    margin-left: 10px;
+    min-width: 50px;
+    text-align: center;
+}
+</style>
+{% endblock js %}

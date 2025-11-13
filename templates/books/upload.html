@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Book PDF Optimization</h1>
+        <p class="lead">Upload scanned PDF books for compression and optimization</p>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 col-md-offset-2">
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Upload Book PDF</h3>
+                </div>
+                <div class="panel-body">
+                    <form method="post" enctype="multipart/form-data" id="bookUploadForm">
+                        {% csrf_token %}
+
+                        <div class="form-group">
+                            <label for="title">Book Title (optional)</label>
+                            <input type="text" class="form-control" id="title" name="title"
+                                   placeholder="Enter book title">
+                            <p class="help-block">If not provided, filename will be used</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="main_pdf">Main Book PDF *</label>
+                            <input type="file" class="form-control" id="main_pdf" name="main_pdf"
+                                   accept=".pdf" required>
+                            <p class="help-block">Required: The main book content PDF file</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="cover_pdf">Cover PDF (optional)</label>
+                            <input type="file" class="form-control" id="cover_pdf" name="cover_pdf"
+                                   accept=".pdf">
+                            <p class="help-block">Optional: Separate cover pages to be added at the start</p>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <strong>Note:</strong> After upload, you'll be able to preview a sample page
+                            and adjust optimization settings before processing the entire book.
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg btn-block" id="uploadBtn">
+                            <span class="glyphicon glyphicon-upload"></span> Upload and Continue to Preview
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <h4>How It Works</h4>
+                </div>
+                <div class="panel-body">
+                    <ol>
+                        <li><strong>Upload:</strong> Select your main book PDF and optional cover PDF</li>
+                        <li><strong>Preview:</strong> View sample page with adjustable optimization settings</li>
+                        <li><strong>Process:</strong> Apply optimization to entire book</li>
+                        <li><strong>Download:</strong> Get your compressed PDF, optimized for e-readers</li>
+                    </ol>
+                    <p><strong>Benefits:</strong></p>
+                    <ul>
+                        <li>Reduces file size by 60-90% for scanned documents</li>
+                        <li>Maintains excellent readability</li>
+                        <li>Perfect for memory-constrained devices</li>
+                        <li>Optimizes color palette while preserving text clarity</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="text-center" style="margin-top: 20px;">
+                <a href="{% url 'noteshrinker:book_list' %}" class="btn btn-default">
+                    <span class="glyphicon glyphicon-list"></span> View Upload History
+                </a>
+                <a href="{% url 'index' %}" class="btn btn-default">
+                    <span class="glyphicon glyphicon-home"></span> Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block js %}
+<script src="{% static 'noteshrinker/js/jquery.min.js' %}"></script>
+<script src="{% static 'noteshrinker/js/bootstrap.min.js' %}"></script>
+<script>
+$(document).ready(function() {
+    // Show file names when selected
+    $('input[type="file"]').change(function() {
+        var filename = $(this).val().split('\\').pop();
+        if (filename) {
+            $(this).next('.help-block').html('<strong>Selected:</strong> ' + filename);
+        }
+    });
+
+    // Form submission handling
+    $('#bookUploadForm').submit(function() {
+        var mainPdf = $('#main_pdf').val();
+        if (!mainPdf) {
+            alert('Please select a main PDF file');
+            return false;
+        }
+
+        $('#uploadBtn').prop('disabled', true).html(
+            '<span class="glyphicon glyphicon-refresh glyphicon-refresh-animate"></span> Uploading...'
+        );
+    });
+});
+</script>
+<style>
+.glyphicon-refresh-animate {
+    animation: spin .7s infinite linear;
+}
+@keyframes spin {
+    from { transform: scale(1) rotate(0deg); }
+    to { transform: scale(1) rotate(360deg); }
+}
+</style>
+{% endblock js %}

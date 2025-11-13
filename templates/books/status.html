@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Book Processing Status</h1>
+        <p class="lead">{{ book.title }}</p>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 col-md-offset-2">
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Processing Progress</h3>
+                </div>
+                <div class="panel-body">
+                    <div id="statusContainer">
+                        <!-- Processing State -->
+                        <div id="processingState" style="display: none;">
+                            <div class="text-center" style="padding: 40px 0;">
+                                <span class="glyphicon glyphicon-cog glyphicon-spin"
+                                      style="font-size: 72px; color: #337ab7;"></span>
+                                <h2 style="margin-top: 30px;">Processing Your Book</h2>
+                                <p class="lead">This may take several minutes depending on book size...</p>
+
+                                <div class="progress" style="margin-top: 30px; height: 30px;">
+                                    <div class="progress-bar progress-bar-striped active"
+                                         role="progressbar"
+                                         style="width: 100%;">
+                                        <span style="font-size: 14px; line-height: 30px;">Processing...</span>
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-info" style="margin-top: 20px;">
+                                    <strong>Processing Steps:</strong>
+                                    <ol style="text-align: left; margin-top: 10px;">
+                                        <li>Converting PDF pages to images</li>
+                                        <li>Optimizing each page with your settings</li>
+                                        <li>Reassembling optimized images into PDF</li>
+                                        <li>Merging with cover (if provided)</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Completed State -->
+                        <div id="completedState" style="display: none;">
+                            <div class="text-center" style="padding: 40px 0;">
+                                <span class="glyphicon glyphicon-ok-circle"
+                                      style="font-size: 72px; color: #5cb85c;"></span>
+                                <h2 style="margin-top: 30px;">Processing Complete!</h2>
+                                <p class="lead">Your book has been successfully optimized</p>
+
+                                <div class="panel panel-success" style="margin-top: 30px;">
+                                    <div class="panel-heading">
+                                        <h4>Compression Results</h4>
+                                    </div>
+                                    <div class="panel-body">
+                                        <div class="row">
+                                            <div class="col-sm-4">
+                                                <h3 id="originalSizeMb">--</h3>
+                                                <p class="text-muted">Original Size (MB)</p>
+                                            </div>
+                                            <div class="col-sm-4">
+                                                <h3 id="optimizedSizeMb">--</h3>
+                                                <p class="text-muted">Optimized Size (MB)</p>
+                                            </div>
+                                            <div class="col-sm-4">
+                                                <h3 id="compressionRatio" style="color: #5cb85c;">--</h3>
+                                                <p class="text-muted">Space Saved</p>
+                                            </div>
+                                        </div>
+                                        <hr>
+                                        <p><strong>Total Pages:</strong> <span id="totalPages">--</span></p>
+                                    </div>
+                                </div>
+
+                                <a href="#" id="downloadBtn" class="btn btn-success btn-lg" style="margin-top: 20px;">
+                                    <span class="glyphicon glyphicon-download"></span> Download Optimized PDF
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Failed State -->
+                        <div id="failedState" style="display: none;">
+                            <div class="text-center" style="padding: 40px 0;">
+                                <span class="glyphicon glyphicon-exclamation-sign"
+                                      style="font-size: 72px; color: #d9534f;"></span>
+                                <h2 style="margin-top: 30px;">Processing Failed</h2>
+                                <p class="lead">An error occurred while processing your book</p>
+
+                                <div class="alert alert-danger" style="margin-top: 30px;">
+                                    <strong>What to try:</strong>
+                                    <ul style="text-align: left; margin-top: 10px;">
+                                        <li>Check that your PDF is not corrupted</li>
+                                        <li>Try with different optimization settings</li>
+                                        <li>Ensure the PDF is not password protected</li>
+                                        <li>Try a smaller file size or fewer pages</li>
+                                    </ul>
+                                </div>
+
+                                <a href="{% url 'noteshrinker:book_upload' %}" class="btn btn-primary" style="margin-top: 20px;">
+                                    <span class="glyphicon glyphicon-upload"></span> Try Another Book
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center" style="margin-top: 20px;">
+                <a href="{% url 'noteshrinker:book_list' %}" class="btn btn-default">
+                    <span class="glyphicon glyphicon-list"></span> View All Books
+                </a>
+                <a href="{% url 'noteshrinker:book_upload' %}" class="btn btn-default">
+                    <span class="glyphicon glyphicon-upload"></span> Upload Another Book
+                </a>
+                <a href="{% url 'index' %}" class="btn btn-default">
+                    <span class="glyphicon glyphicon-home"></span> Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block js %}
+<script src="{% static 'noteshrinker/js/jquery.min.js' %}"></script>
+<script src="{% static 'noteshrinker/js/bootstrap.min.js' %}"></script>
+<script>
+$(document).ready(function() {
+    var bookId = {{ book.id }};
+    var pollInterval = null;
+
+    function updateStatus() {
+        $.ajax({
+            url: '/books/' + bookId + '/status/json/',
+            method: 'GET',
+            success: function(response) {
+                console.log('Status:', response.status);
+
+                // Hide all states
+                $('#processingState').hide();
+                $('#completedState').hide();
+                $('#failedState').hide();
+
+                if (response.status === 'processing') {
+                    $('#processingState').show();
+                } else if (response.status === 'completed') {
+                    $('#completedState').show();
+
+                    // Update statistics
+                    $('#originalSizeMb').text(response.original_size_mb.toFixed(2));
+                    $('#optimizedSizeMb').text(response.optimized_size_mb.toFixed(2));
+                    $('#compressionRatio').text(response.compression_ratio + '%');
+                    $('#totalPages').text(response.total_pages);
+
+                    // Set download URL
+                    $('#downloadBtn').attr('href', response.download_url);
+
+                    // Stop polling
+                    if (pollInterval) {
+                        clearInterval(pollInterval);
+                    }
+                } else if (response.status === 'failed') {
+                    $('#failedState').show();
+
+                    // Stop polling
+                    if (pollInterval) {
+                        clearInterval(pollInterval);
+                    }
+                }
+            },
+            error: function() {
+                console.error('Failed to fetch status');
+                // Continue polling even on error
+            }
+        });
+    }
+
+    // Initial status check
+    updateStatus();
+
+    // Poll every 2 seconds
+    pollInterval = setInterval(updateStatus, 2000);
+
+    // Clean up on page unload
+    $(window).on('beforeunload', function() {
+        if (pollInterval) {
+            clearInterval(pollInterval);
+        }
+    });
+});
+</script>
+<style>
+.glyphicon-spin {
+    animation: spin 2s infinite linear;
+}
+@keyframes spin {
+    from { transform: scale(1) rotate(0deg); }
+    to { transform: scale(1) rotate(360deg); }
+}
+</style>
+{% endblock js %}

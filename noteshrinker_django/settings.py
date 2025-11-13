@@ -11,22 +11,23 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 
 import os
-from django.utils.translation import ugettext_lazy as _
+from pathlib import Path
+from django.utils.translation import gettext_lazy as _
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Build paths inside the project like this: BASE_DIR / 'subdir'
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '1ba57$dfja!yx&&5$_4=q!de+k6@_qt0ipta^rkcg*m6*76n0*'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '1ba57$dfja!yx&&5$_4=q!de+k6@_qt0ipta^rkcg*m6*76n0*')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 
 # Application definition
@@ -57,8 +58,7 @@ ROOT_URLCONF = 'noteshrinker_django.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')]
-        ,
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -80,7 +80,7 @@ WSGI_APPLICATION = 'noteshrinker_django.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
@@ -110,7 +110,7 @@ LANGUAGE_CODE = 'en-US'
 
 
 LOCALE_PATHS = [
-    os.path.join(BASE_DIR, 'locale'),
+    BASE_DIR / 'locale',
 ]
 
 LANGUAGES = [
@@ -133,10 +133,70 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = "static_collected/"
+STATIC_ROOT = BASE_DIR / 'static_collected'
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'noteshrinker', 'media')
-PDF_ROOT = os.path.join(MEDIA_ROOT, 'pdf')
-PNG_ROOT = os.path.join(MEDIA_ROOT, 'png')
+MEDIA_ROOT = BASE_DIR / 'noteshrinker' / 'media'
+PDF_ROOT = MEDIA_ROOT / 'pdf'
+PNG_ROOT = MEDIA_ROOT / 'png'
 RANDOM_STRING_LEN=7
 APPEND_SLASH = False
+
+# Security settings
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+# Enable these when using HTTPS in production:
+# CSRF_COOKIE_SECURE = True
+# SESSION_COOKIE_SECURE = True
+# SECURE_SSL_REDIRECT = True
+
+# Django 4.2+ required settings
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# CSRF trusted origins (add your production domains here)
+CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 'http://localhost:8000,http://127.0.0.1:8000').split(',')
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'noteshrinker.log',
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+        'noteshrinker': {
+            'handlers': ['console', 'file'],
+            'level': os.environ.get('APP_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+    },
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': 'INFO',
+    },
+}
