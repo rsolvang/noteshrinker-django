@@ -24,11 +24,8 @@ RUN apt-get update && \
 COPY requirements_docker.txt ./
 RUN pip install --no-cache-dir -r requirements_docker.txt
 
-RUN pip wheel numpy
-RUN pip install numpy
-
-RUN pip wheel scipy
-RUN pip install scipy
+# Scientific computing - NumPy 2.x has pre-built wheels for Python 3.13+
+RUN pip install --no-cache-dir "numpy>=2.0.0" "scipy>=1.13.0"
 
 # Project files
 COPY . .
