@@ -15,6 +15,8 @@ Including another URLconf
 """
 from django.urls import include, path, re_path
 from django.contrib import admin
+from django.conf import settings
+from django.conf.urls.static import static
 from django.conf.urls.i18n import i18n_patterns
 from django.utils.translation import gettext_lazy as _
 from noteshrinker import views as noteshrinker_views
@@ -27,3 +29,13 @@ urlpatterns = [
 urlpatterns += i18n_patterns(
     re_path(_(r'^$'), noteshrinker_views.PictureCreateView.as_view(), name='index'),
 )
+
+# Serve static files during development
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    # Also serve static files from app directories
+    from django.contrib.staticfiles import views as staticfiles_views
+    urlpatterns += [
+        re_path(r'^static/(?P<path>.*)$', staticfiles_views.serve),
+    ]
+
